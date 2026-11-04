@@ -1,7 +1,9 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from "next";
+import { SeverityNumber } from "@opentelemetry/api-logs";
 import { getResponseVideo, ResultResponse } from '../../../api/database';
 import { APIError } from "./index";
+import { flushPostHogLogs, getPostHogLogger } from "../../../../instrumentation";
 
 class VideoResponseReq {
 	uuid: string = "";
@@ -22,8 +24,19 @@ export default async function handler(
 		// console.log(typeof (req.query?.round))
 		if (req.body != null && isVideoResponseReq(req.body)) {
 			const responseVideo = await getResponseVideo(req.body.uuid, req.body.round, req.body.ep, req.body.date);
-			if (responseVideo)
+			if (responseVideo) {
+				getPostHogLogger()?.emit({
+					severityNumber: SeverityNumber.INFO,
+					body: "game round scored",
+					attributes: {
+						event: "game_round_scored",
+						round_number: Number(req.body.round),
+						http_status_code: 200,
+					},
+				});
+				await flushPostHogLogs();
 				res.status(200).json(responseVideo);
+			}
 			else
 				res.status(404).send({ message: "Not Found" });
 		} else {

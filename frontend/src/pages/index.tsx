@@ -15,6 +15,7 @@ import { LATEST_EP } from "@/api/seed";
 import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material";
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Link from "next/link";
+import posthog from "posthog-js";
 
 const geistSans = Geist({
 	variable: "--font-geist-sans",
@@ -49,6 +50,7 @@ export default function Home() {
 		if (seeded) {
 			setOpenSeedDialog(true)
 		} else {
+			posthog.capture("game_started", { game_mode: "random" })
 			router.push('/game')
 		}
 	}
@@ -58,6 +60,7 @@ export default function Home() {
 	}
 
 	function onStartGame(seed: string) {
+		posthog.capture("game_started", { game_mode: "seeded" })
 		router.push(`/game?seed=${seed}`)
 	}
 

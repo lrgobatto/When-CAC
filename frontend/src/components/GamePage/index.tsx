@@ -11,6 +11,7 @@ import Header from "../Header"
 import { GuessVideo, ResultResponse, VideoResponse } from "../../api/database";
 import { stringDateToSlash } from "../../utils/stringDateToSlash";
 import { Result } from "@/pages/game";
+import posthog from "posthog-js";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -65,6 +66,12 @@ export default function Game({ uuid, latestEp, result, setResult, handleError, s
       return handleError(guessVideoRes)
     }
     setVideoResponse(guessVideoRes.responseVideo)
+    posthog.capture("round_completed", {
+      round_number: round,
+      episode_points: guessVideoRes.points.ep,
+      date_points: guessVideoRes.points.date,
+      round_points: guessVideoRes.points.ep + guessVideoRes.points.date,
+    })
     setResult({
       rounds: [...result.rounds, {
         ep: {
@@ -102,6 +109,9 @@ export default function Game({ uuid, latestEp, result, setResult, handleError, s
       setAnswered(false)
       setLoaded(true)
     } else {
+      posthog.capture("game_completed", {
+        total_points: result.totalPoints,
+      })
       setFinished(true)
       // router.push({
       //   pathname: '/end',

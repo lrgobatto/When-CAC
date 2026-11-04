@@ -1,7 +1,9 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from "next";
+import { SeverityNumber } from "@opentelemetry/api-logs";
 import Game from '../../../api/game';
 import { createGame } from "@/api/database";
+import { flushPostHogLogs, getPostHogLogger } from "../../../../instrumentation";
 
 export type GameData = {
   uuid: string;
@@ -37,6 +39,17 @@ export default async function handler(
     }
 
     if (await createGame(game)) {
+      getPostHogLogger()?.emit({
+        severityNumber: SeverityNumber.INFO,
+        body: "game created",
+        attributes: {
+          event: "game_created",
+          game_mode: typeof req.query?.seed === "string" ? "seeded" : "random",
+          http_status_code: 200,
+        },
+      });
+      await flushPostHogLogs();
+
       return res.status(200).json({
         uuid: game._id.toString(),
         latestEp: game.seed.latest_ep,
